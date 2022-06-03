@@ -1,0 +1,55 @@
+#include <winsock2.h>
+#include <stdio.h>
+#define BUFFER_SIZE 512
+
+int main()
+{
+    WSADATA wsaData;
+    SOCKET sClient;
+    char *Serip = "192.168.9.35";
+    int SeriPort = 5050;
+    char send_buf[BUFFER_SIZE],recv_buff[BUFFER_SIZE];
+    struct sockaddr_in seraddr;
+    memset(send_buf,0, BUFFER_SIZE);
+    if(WSAStartup(MAKEWORD(2,2),&wsaData)!=0)
+    {
+        printf("failed to load winsock\n");
+        return -1;
+    }
+
+    seraddr.sin_family = AF_INET;
+    seraddr.sin_port = htons(SeriPort);
+    seraddr.sin_addr.s_addr = inet_addr(Serip);
+    sClient = socket(AF_INET,SOCK_STREAM,0);
+
+    if(sClient == INVALID_SOCKET)
+    {
+        printf("creat socket failed :%d\n",WSAGetLastError());
+        return -1;
+    }
+
+    if(connect(sClient,(struct sockaddr *)&seraddr,sizeof(seraddr))== INVALID_SOCKET)
+    {
+        printf("connect failed:%d",WSAGetLastError());
+        return -1;
+    }
+    printf("start send data to server:\n");
+    int ilen = sizeof(seraddr);
+    while(1)
+    {
+        scanf("%s",send_buf);
+        int isnd = sendto(sClient,send_buf,sizeof(send_buf),0,(struct sockaddr*)&seraddr,sizeof(seraddr));
+        if(isnd == 0) break;
+        else if(isnd == SOCKET_ERROR)
+        {
+            printf("send data error:%d",WSAGetLastError());
+            return -1;
+        }
+        int ircv= recvfrom(sClient,recv_buff,sizeof(recv_buff),0,(struct sockaddr*)&seraddr,&ilen);
+        printf("client receive from server:%s\n",recv_buff);
+        printf("server ip:[%s],port:[%d]\n",inet_ntoa(seraddr.sin_addr),ntohs(seraddr.sin_port));
+    }
+    closesocket(sClient);
+    WSACleanup();
+    return 0;
+}
